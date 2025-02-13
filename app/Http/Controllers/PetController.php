@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Pet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-
+use Illuminate\Validation\ValidationException;
 
 class PetController extends Controller
 {
@@ -113,24 +113,42 @@ class PetController extends Controller
      */
     public function update(Request $request, Pet $pet)
     {
-        //
-        // ตรวจสอบข้อมูลก่อนอัปเดต
-        $validatedData = $request->validate([
-            'name' => 'required',
-            'species' => 'required',
-            'price' => 'required|numeric',
-            'status' => 'required',
-        ]);
+        try {
+            // ตรวจสอบข้อมูลก่อนอัปเดต
+            $validatedData = $request->validate([
+                'name' => 'required',
+                'species' => 'required',
+                'price' => 'required|numeric',
+                'status' => 'required',
+            ]);
 
-        // อัปเดตข้อมูล
-        $pet->update($validatedData);
-        return response()->json([
-            'success' => true,
-            'message' => 'Pet updated successfully',
-            'data' => $pet
-        ]);
+            // อัปเดตข้อมูล
+            $pet->update($validatedData);
 
+            // คืนค่า json หลังการอัปเดตสำเร็จ
+            return response()->json([
+                'success' => true,
+                'message' => 'Pet updated successfully',
+                'data' => $pet
+            ], 200);
+
+        } catch (ValidationException $e) {
+            // กรณีข้อมูลไม่ถูกต้อง
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors() // รายละเอียดข้อผิดพลาด
+            ], 422);
+        } catch (\Exception $e) {
+            // กรณีเกิดข้อผิดพลาดอื่นๆ
+            return response()->json([
+                'success' => false,
+                'message' => 'Something went wrong',
+                'error' => $e->getMessage() // แสดงข้อความข้อผิดพลาด
+            ], 500);
+        }
     }
+
 
     /**
      * Remove the specified resource from storage.
